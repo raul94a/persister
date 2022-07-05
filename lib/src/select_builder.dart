@@ -1,4 +1,6 @@
 //query
+import 'package:persister/src/extensions/extensions.dart';
+
 class SelectBuilder {
   String _sql = '';
 
@@ -69,21 +71,5 @@ class SelectBuilder {
   }
 }
 
-extension ListConcatenation<T> on List<T> {
-  String concatenate({String separator = ','}) {
-    String s = '';
-    int length = this.length;
-    for (int i = 0; i < length; i++) {
-      dynamic currentValue = this[i];
-      bool isString = isValueAString(index: i);
-      s += i < length - 1
-          ? '${isString ? '"$currentValue",' : currentValue},'
-          : '${isString ? '"$currentValue"' : currentValue}';
-    }
-    return s;
-  }
 
-  bool isValueAString({required int index}) {
-    return this[index] is String;
-  }
-}
+
