@@ -53,7 +53,8 @@ abstract class Persister<T> {
   ///
   ///   }
   /// ```
-  Future<Map<String, dynamic>> save({List<dynamic> values = const []}) async {
+  Future<Map<String, dynamic>> save() async {
+    print(isIdAutoIncrementable);
     int insertedId = 0;
     final conn = await _mySQLManager
         .init()
@@ -73,13 +74,15 @@ abstract class Persister<T> {
       if (isIdAutoIncrementable) {
         insertedId = res.insertId!;
         values.first = insertedId;
+        print('insertedID $insertedId');
+        print(values);
       }
     } catch (err) {
       throw Exception(err.toString());
     } finally {
       await conn.close();
     }
-    return _createMap(values: values);
+    return isIdAutoIncrementable ? _mapWithUpdatedId(id: insertedId) : _createMap();
   }
 
   ///To use the update method the best practice is to create the toMap() method
@@ -114,14 +117,16 @@ abstract class Persister<T> {
   ///
   ///   }
   /// ```
-  Future<void> update({required Map<String, dynamic> data}) async {
+  Future<void> update() async {
     final conn = await _mySQLManager
         .init()
         .onError((error, stackTrace) => throw Exception(error.toString()));
     try {
-      final updateQuery = _UpdateQuery(data: data, table: table);
+      final updateQuery = _UpdateQuery(data: _createMap(), table: table);
       print(updateQuery.updateQuery);
       List<dynamic> updateValues = values.sublist(1)..add(values[0]);
+      print(updateValues);
+      print(updateQuery.updateQuery);
       await conn.query(updateQuery.updateQuery, updateValues);
     } catch (error) {
       throw Exception(error.toString());
@@ -132,7 +137,8 @@ abstract class Persister<T> {
 
   ///As update method is a good practice to declare a ToMap() method on the class body.
   ///this function will delete the object on the database;
-  Future<void> delete({required Map<String, dynamic> data}) async {
+  Future<void> delete() async {
+    Map<String,dynamic> data = _createMap();
     String idField = columns.first;
     dynamic idValue = data[idField];
     final conn = await _mySQLManager
@@ -200,7 +206,7 @@ abstract class Persister<T> {
     return results;
   }
 
-  Map<String, dynamic> _createMap({required List<dynamic> values}) {
+  Map<String, dynamic> _createMap() {
     int length = columns.length;
     if (columns.length != values.length) {
       throw Exception('values and columns have different length');
@@ -212,6 +218,14 @@ abstract class Persister<T> {
     }
     return map;
   }
+  //only when id is autoincrementable
+  Map<String,dynamic> _mapWithUpdatedId({required int id}){
+    Map<String,dynamic> map = _createMap();
+    map[columns.first] = id;
+    return map;
+  }
+
+  void testMethod() => print(values);
 }
 
 class _UpdateQuery {
