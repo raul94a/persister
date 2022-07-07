@@ -1,17 +1,5 @@
-<!-- 
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
-
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/guides/libraries/writing-package-pages). 
-
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-library-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/developing-packages). 
--->
-Persister is a dependency that allows you to declare a model and make every CRUD operation in an easy way. Take a look into the example
-and see the power of Persister. Try it and you will not regret.
+# Persister
+Persister is a dependency that allows you to declare data models and make every CRUD operation in an easy way. Take a look into the example and see the power of Persister. Try it and you will not regret.
 
 ## Features
 
@@ -20,7 +8,13 @@ heavy lifting for you.
 
 ## Getting started
 
-IT'S NEEDED TO CREATE A .env file at your app root. At least it needs this properties:
+### 1. Configure a .env file at the root of your dart server application
+
+In order to use this package is necessary to create and configure a .env file with your database credentials.
+This repository has a in-built env reader that will perform the reading of this file. You can add others properties within
+this file, but you will need to use a external dependency or build a reader to access them.
+
+Database connection credentials (inside .env file):
 
 db=YOUR_DB_NAME
 host=YOUR_DB_HOST
@@ -31,93 +25,120 @@ port=THE_PORT_WHERE_DB_IS_RUNNING
 Once you have this configuration of above you can read Usage.
 
 ## Usage 
+### A. Declare your models!
+
+Persister needs you to create your own data models, which must be related to your MySql / MariaDB tables.
+Here I provide an example with a dart class called Test (and which is related to a table with the same name).
+
+It's crucial for Persister to follow these steps:
+1. Extend your model with Persister< Model>
+2. Declare the attributes your model will have, which should be related to your mysql table.
+3. Pass the columns name to the super constructor. These columns name are, indeed, the name of the columns of your table. Here is important to <b>PASS THE PRIMARY KEY FIELD NAME AT THE FIRST POSITION OF THE COLUMNS ARRAY.</b> 
+4. Pass to the super constructor the table name and if the primary key is auto incrementable or not.
+5. Override values getter and fromMap method.
+6. You must pass the values (the attributes of the class) <b>in the same order as the field names were passed at the columns array.</b>
+7. See the example below.
 
 ```dart
-import 'package:persister/persister.dart';
-
-//This is a sample class using Persister.
-//Though the order of the attributes of a class does not matter,
-//It's very important to define the primary key fieldname at the first position of columns array, within super constructor
-//Also, you have to define the primary key value at the first position of the values getter array.
-
-//IMPORTANT
-//values and columns need to have the same order. This mean they have to be related by position
-//for example if I had:
-// values: [1, 'Raul']
-// columns: ['id', 'name']
-// the first position (0) of both arrays corresponds to the fieldname id and the value 1.
-// the second position (1) corresponds to fieldname 'name' and value 'raul'.
-//You have to respect the order. Maybe in  the future the arrays're being replaced by a Map...
-
-//So, the super construction will have METADATA about the TABLE: NAME, FIELDNAME and if the pk field is AUTOINCREMENTABLE
-//you have to
 class Test extends Persister<Test> {
   //id is the primary key of test table
   int id;
   String text;
-  //IMPORTANT!!!!!
-  //be sure to declare the id field in the first position of the columns array
-  Test({this.id = -1, required this.text})
-      : super(
-            columns: ['id', 'text'],
-            table: 'test',
-            isIdAutoIncrementable: true);
 
-  //fromMap and toMap methods, you maybe want to implement then!
-  static Test fromMap(Map<String, dynamic> map) =>
-      Test(id: map['id'], text: map['text']);
+  //IMPORTANT!!!!!
+  //be sure to declare the id field in the first position of the columns array (inside super constructor)
+  Test({this.id = -1, required this.text})
+  //super constructor
+  //as you see, columns will contain the field names of the table.
+      : super(columns: ['id', 'text'], table: 'test', isIdAutoIncrementable: true);
+
+  //It's not mandatory, but it will help if you have
+  //this factory constructor. It will receive a map
+  //and use the values inside it to generate the object.
+  //You can extend this functionality to every model you declare.
+  factory Test.fromMap(Map<String, dynamic> map) {
+    return Test(id: map['id'], text: map['text']);
+  }
+  //The fromMap method will use your factory constructor in order to parse a Map to an object, Test in this case. You can use your custom fromMap function with no problem. 
+  //It's mandatory to set it up. 
+  @override
+  Test fromMap(Map<String, dynamic> map) => Test.fromMap(map);
   Map<String, dynamic> toMap() => {'id': id, 'text': text};
 
+  //Not necessary but maybe useful
   @override
   String toString() => 'Test(id: $id, text: $text)';
 
+  //Mandatory to override. Pass the attributes of the class that represent the table in the exactly same order as you did
   @override
-  //IMPORTANT!!!!!!
-  //be sure to declare de id value in the first position of the values array
   List<dynamic> get values => [id, text];
 }
 
-//Now we have prepared the model let's start with the use of this pacakge, but first there's one thing you have to do
-//As this library uses mysql_manager dependency, written also by me, you need to configure the .env file at the root of your
-//project. This .env file can contain the properties you desire. However the following are needed in order to connect to your
-//mysql
+```
+This Test class maybe is a good template for you to create your own models
 
-// db=YOUR_DB_NAME
-// host=YOUR_DB_HOST
-// user=YOUR_MYSQL_USER
-// password=YOUR_MYSQL_PASS
-// port=THE_PORT_WHERE_DB_IS_RUNNING
+### 2. Use the power of Persister
+Once you have configured the .env file and declared your models, you can use your Model to perform CRUD operations in your database. You don't have to worry about DB Connection Management. Persister will make the dirty work for you. This is the philosophy: <b>To focus in accessing and persisting data.</b>
 
-//WHEN THIS .env file is well configured you can use Persister as shown within main function.
+This example will be enclosed in the main function. You can use this approach in wherever you want inside your dart server.
+
+###### Persistence of data
+With your model ander Persister extension, you can access to the methods save, update and delete to perform the persistance task. 
+
+###### Fetching data
+For selecting data, Persister has some static methods that will help you in this task. See the example below.
+
+###### The example provides how to use save, update, delete methods from your declared classes extending Persister. Also how to use the static methods selectAll and nativeQuery from Persister.
+```dart
+
 void main() async {
   //INSERT A ROW INSIDE test TABLE
   Test test = Test(text: 'this is a new test');
-  //save method will return a Map<String,dynamic>. You can concatenate this with deserialize()
-  //In order to parse this Map into a Test object (or the Model you are using with Persister)
-  //AutoIncrementable primary keys will be returned with the save method.
+  //Save method will insert the data in a row within the database. 
+  //If you have passed the attribute  isAutoIncrementable = true, the autogenerated id will be returned, so the object will have this id. 
+  //In order words. If the test object below is inserted with an id of 1000, it will be returned and set into this same object. You don't have to worry about this auto incrementable ids.
   test = await test
-      .save(values: test.values)
-      .deserialize((map) => Test.fromMap(map));
+      .save();
 
-  //Using toMap method updates the data of the correct row inside your db.
+
   test.text = 'updated the new test';
-  await test.update(data: test.toMap());
+  //update method will update the object inside your table
+  await test.update();
+
+  //Deleting one element. Deletes by id.
+  await test.delete();
 
   //selecting data
-  //For selecting data we use the static methods from Persister
-  //Again, deserialize will return a callback containin every fetched row as a Map. You can use
-  // that map in order to parse the data directly to a List of Models you're using.
 
-  //Deleting one element
-  await test.delete(data: test.toMap());
+  //For selecting data we use the static methods from Persister
+  
+  //selecting all data
+  //for selecting all the data you should use Persister
+  // selectAll method, which will return a List<Map<String,dynamic>>. This raw data can be parsed
+  // to a List<Model> (List<Test> in this case) using concatenating this selectAll with deserialize method.
+  //You have to use a function / constructor in order to parse each Map of the list into a Object.
+  //As you can see in this example I am using the same Test.fromMap factory constructor I've declared in the class construction.
+  List<Test> tests =
+      await Persister.selectAll(table: 'test').deserialize((map) => Test.fromMap(map));
+
 
   //Using the nativeQuery
   //You can use your own sql queries with the folling static method from Persister
   //And again, deserialize allow you to easily parse the Results into a model you have defined.
+
+  //this is a way to use prepared statements. When you use prepared statements you HAVE to pass the values array in the same order of ? aparition.
   List<Test> testsNative =
-      await Persister.nativeQuery(sql: 'select * from test')
+      await Persister.nativeQuery(sql: 'select * from test where id > ?', [5])
           .deserialize((map) => Test.fromMap(map));
-  print(testsNative);
+ 
+  
+  // if you do not wanna use prepared statements you can use nativeQuery in this way (same as former example)
+ List<Test> testsNative =
+      await Persister.nativeQuery(sql: 'select * from test where id > 5')
+          .deserialize((map) => Test.fromMap(map));
+
+
+
 }
 
 ```
