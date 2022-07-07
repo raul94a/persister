@@ -1,6 +1,10 @@
 //query
 import 'package:persister/src/extensions/extensions.dart';
 
+///[SelectBuilder] is under construction. If you know something about codeigniter, there exists something called
+///queryBuilder which is used for query construction.
+///[SelectBuilder] is something like that but with only select sentences. You can concatenate the methods provided by
+///SelectBuilder class and create easily, almost without knowing sql, a select query.
 class SelectBuilder {
   String _sql = '';
 

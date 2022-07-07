@@ -3,12 +3,6 @@ import 'dart:async';
 import 'package:mysql_manager/mysql_manager.dart';
 import 'package:persister/src/select_builder.dart';
 
-extension Tpa<T> on T {
-  static Type fromMap<T>(Map<String, dynamic> map) {
-    return T;
-  }
-}
-
 ///[Persister] will manager the connection for yourself.
 ///You will only have to worry about advanced SQL queries
 ///and declare the models in a good way. Examples are provided in order there's no problem with this dependency usage.
@@ -64,8 +58,6 @@ abstract class Persister<T> {
   /// ```
 
   Future<T> save() async {
-
-
     int insertedId = 0;
     final conn = await _mySQLManager
         .init()
@@ -97,7 +89,6 @@ abstract class Persister<T> {
     final data =
         isIdAutoIncrementable ? _createUpdatedMap(insertedId) : _createMap();
     return fromMap(data);
-
   }
 
   ///To use the update method the best practice is to create the toMap() method
@@ -150,10 +141,8 @@ abstract class Persister<T> {
     }
   }
 
-  ///As update method is a good practice to declare a ToMap() method on the class body.
-  ///this function will delete the object on the database;
+  ///Deletes the row associated with the object ID.
   Future<void> delete() async {
-
     final data = _createMap();
 
     String idField = columns.first;
@@ -170,9 +159,34 @@ abstract class Persister<T> {
     }
   }
 
+  ///Select data and return a List of object. To have success using this method,
+  ///your model has to own a [fromMap] method that will parse every row fetched with
+  ///the selection query.
+  ///
+  ///How to implement a fromMap method in your model?
+  ///```dart
+  /// class Test extends Persister<Test>{
+  ///   int? id;
+  ///   String str;
+  ///   Test({this.id, required this.str}) : super({columns: ['id', 'str'], isIdAutoIncrementable: true, table: 'test'});
+  ///
+  ///   //factory fromMap constructor
+  ///   factory Test.fromMap(Map<String,dynamic> map) => Test(id: map['id'], str: map['str']);
+  ///
+  ///   //overriden fromMap method from Persister
+  ///   @override
+  ///   Test fromMap(Map<String,dynami> map)) => Test.fromMap(map);
+  ///
+  ///   @override
+  ///   List<Object?> get values => [id,str];
+  /// }
+  ///```
   static Future<List<T>> selectWithConversion<T>(
       {required String sql,
       required T Function(Map<String, dynamic>) fromMap}) async {
+    if (!sql.toLowerCase().contains('select')) {
+      throw Exception('Query does not contain select clause');
+    }
     final conn = await _mySQLManager
         .init()
         .onError((error, stackTrace) => throw Exception(error.toString()));
@@ -185,8 +199,15 @@ abstract class Persister<T> {
     return tes;
   }
 
-  // static Future<List<Map<String,dynamic>>> select() async{}
-
+  ///[table] references the table where every row is gonna be fetched.
+  ///[returns] a Future<List<Map<String,dynamic>>> which can be parsed concatenating
+  ///[deserialize] method. Deserialize needs the developer to code the [fromMap] method
+  ///
+  ///Example:
+  ///```dart
+  /// final tests = await Persister.selectAll(table: 'test').deserialize((map) => Test.fromMap(map));
+  ///
+  ///```
   static Future<List<Map<String, dynamic>>> selectAll(
       {required String table}) async {
     final conn = await _mySQLManager
@@ -205,6 +226,23 @@ abstract class Persister<T> {
     return results;
   }
 
+  ///```dart
+  /// class Test extends Persister<Test>{
+  ///   int? id;
+  ///   String str;
+  ///   Test({this.id, required this.str}) : super({columns: ['id', 'str'], isIdAutoIncrementable: true, table: 'test'});
+  ///
+  ///   //factory fromMap constructor
+  ///   factory Test.fromMap(Map<String,dynamic> map) => Test(id: map['id'], str: map['str']);
+  ///
+  ///   //overriden fromMap method from Persister
+  ///   @override
+  ///   Test fromMap(Map<String,dynami> map)) => Test.fromMap(map);
+  ///
+  ///   @override
+  ///   List<Object?> get values => [id,str];
+  /// }
+  ///```
   static Future<List<T>> selectAllWithConversion<T>(
       {required String table,
       required T Function(Map<String, dynamic>) fromMap}) async {
@@ -216,6 +254,30 @@ abstract class Persister<T> {
     return list;
   }
 
+  ///You can set your own [sql] sentence. [sql] may use placeholders in order to use prepared statements.
+  ///Placeholders values need to be passed into [values] array
+  ///
+  ///
+  ///[nativeQuery] can be parsed directly into a List of objects with [deserialize] method
+  ///This method needs the fromMap function from your model. There's a example on how to do id.
+  ///
+  ///```dart
+  /// class Test extends Persister<Test>{
+  ///   int? id;
+  ///   String str;
+  ///   Test({this.id, required this.str}) : super({columns: ['id', 'str'], isIdAutoIncrementable: true, table: 'test'});
+  ///
+  ///   //factory fromMap constructor
+  ///   factory Test.fromMap(Map<String,dynamic> map) => Test(id: map['id'], str: map['str']);
+  ///
+  ///   //overriden fromMap method from Persister
+  ///   @override
+  ///   Test fromMap(Map<String,dynami> map)) => Test.fromMap(map);
+  ///
+  ///   @override
+  ///   List<Object?> get values => [id,str];
+  /// }
+  ///```
   static Future<Results> nativeQuery(
       {required String sql, List<Object>? values}) async {
     final conn = await _mySQLManager.init();
@@ -237,13 +299,11 @@ abstract class Persister<T> {
     return map;
   }
 
-
   Map<String, dynamic> _createUpdatedMap(int insertedId) {
     final data = _createMap();
     data[columns.first] = insertedId;
     return data;
   }
-
 }
 
 class _UpdateQuery {

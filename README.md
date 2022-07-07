@@ -92,6 +92,7 @@ For selecting data, Persister has some static methods that will help you in this
 ```dart
 
 void main() async {
+
   //INSERT A ROW INSIDE test TABLE
   Test test = Test(text: 'this is a new test');
   //Save method will insert the data in a row within the database. 
@@ -128,17 +129,19 @@ void main() async {
 
   //this is a way to use prepared statements. When you use prepared statements you HAVE to pass the values array in the same order of ? aparition.
   List<Test> testsNative =
-      await Persister.nativeQuery(sql: 'select * from test where id > ?', [5])
+      await Persister.nativeQuery(sql: 'select * from test where id > ?', values: [5])
           .deserialize((map) => Test.fromMap(map));
  
   
   // if you do not wanna use prepared statements you can use nativeQuery in this way (same as former example)
- List<Test> testsNative =
+ List<Test> testsNative2 =
       await Persister.nativeQuery(sql: 'select * from test where id > 5')
           .deserialize((map) => Test.fromMap(map));
 
 
 
+
 }
+
 
 ```

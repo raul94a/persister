@@ -1,6 +1,6 @@
 name: persister
 description: Persister allows you to increase your performance when using MySql on dart servers, providing an easy API.
-version: 1.0.0
+version: 1.0.4
 homepage: https://github.com/raul94a/persister
 
 environment:
