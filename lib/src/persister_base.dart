@@ -3,6 +3,12 @@ import 'dart:async';
 import 'package:mysql_manager/mysql_manager.dart';
 import 'package:persister/src/select_builder.dart';
 
+extension Tpa<T> on T {
+  static Type fromMap<T>(Map<String, dynamic> map) {
+    return T;
+  }
+}
+
 ///[Persister] will manager the connection for yourself.
 ///You will only have to worry about advanced SQL queries
 ///and declare the models in a good way. Examples are provided in order there's no problem with this dependency usage.
@@ -20,8 +26,11 @@ abstract class Persister<T> {
       required this.isIdAutoIncrementable}) {
     selectBuilder = SelectBuilder(selectedTable: table);
   }
+
   //should be setted on the children
   List<Object?> get values;
+
+  T fromMap(Map<String, dynamic> data);
 
   ///Children which extends Persister could access this method. It only needs
   ///the [values] getter from the child as argument. [values] correspond to
@@ -53,8 +62,10 @@ abstract class Persister<T> {
   ///
   ///   }
   /// ```
-  Future<Map<String, dynamic>> save() async {
-    print(isIdAutoIncrementable);
+
+  Future<T> save() async {
+
+
     int insertedId = 0;
     final conn = await _mySQLManager
         .init()
@@ -82,7 +93,11 @@ abstract class Persister<T> {
     } finally {
       await conn.close();
     }
-    return isIdAutoIncrementable ? _mapWithUpdatedId(id: insertedId) : _createMap();
+
+    final data =
+        isIdAutoIncrementable ? _createUpdatedMap(insertedId) : _createMap();
+    return fromMap(data);
+
   }
 
   ///To use the update method the best practice is to create the toMap() method
@@ -123,7 +138,7 @@ abstract class Persister<T> {
         .onError((error, stackTrace) => throw Exception(error.toString()));
     try {
       final updateQuery = _UpdateQuery(data: _createMap(), table: table);
-      print(updateQuery.updateQuery);
+
       List<dynamic> updateValues = values.sublist(1)..add(values[0]);
       print(updateValues);
       print(updateQuery.updateQuery);
@@ -138,7 +153,9 @@ abstract class Persister<T> {
   ///As update method is a good practice to declare a ToMap() method on the class body.
   ///this function will delete the object on the database;
   Future<void> delete() async {
-    Map<String,dynamic> data = _createMap();
+
+    final data = _createMap();
+
     String idField = columns.first;
     dynamic idValue = data[idField];
     final conn = await _mySQLManager
@@ -199,9 +216,10 @@ abstract class Persister<T> {
     return list;
   }
 
-  static Future<Results> nativeQuery({required String sql}) async {
+  static Future<Results> nativeQuery(
+      {required String sql, List<Object>? values}) async {
     final conn = await _mySQLManager.init();
-    final results = await conn.query(sql);
+    final results = await conn.query(sql, values);
     await conn.close();
     return results;
   }
@@ -218,14 +236,14 @@ abstract class Persister<T> {
     }
     return map;
   }
-  //only when id is autoincrementable
-  Map<String,dynamic> _mapWithUpdatedId({required int id}){
-    Map<String,dynamic> map = _createMap();
-    map[columns.first] = id;
-    return map;
+
+
+  Map<String, dynamic> _createUpdatedMap(int insertedId) {
+    final data = _createMap();
+    data[columns.first] = insertedId;
+    return data;
   }
 
-  void testMethod() => print(values);
 }
 
 class _UpdateQuery {

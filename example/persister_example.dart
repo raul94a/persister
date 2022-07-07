@@ -27,10 +27,12 @@ class Test extends Persister<Test> {
             columns: ['id', 'text'],
             table: 'test',
             isIdAutoIncrementable: true);
-
+  factory Test.fromMap(Map<String, dynamic> map) {
+    return Test(id: map['id'], text: map['text']);
+  }
   //fromMap and toMap methods, you maybe want to implement then!
-  static Test fromMap(Map<String, dynamic> map) =>
-      Test(id: map['id'], text: map['text']);
+  @override
+  Test fromMap(Map<String, dynamic> map) => Test.fromMap(map);
   Map<String, dynamic> toMap() => {'id': id, 'text': text};
 
   @override
@@ -56,25 +58,32 @@ class Test extends Persister<Test> {
 //WHEN THIS .env file is well configured you can use Persister as shown within main function.
 void main() async {
   //INSERT A ROW INSIDE test TABLE
-  Test test = Test(text: 'this is a new test');
+  Test test = Test(text: 'this is a new test IS BEING DELETED');
   //save method will return a Map<String,dynamic>. You can concatenate this with deserialize()
   //In order to parse this Map into a Test object (or the Model you are using with Persister)
   //AutoIncrementable primary keys will be returned with the save method.
-  test = await test
-      .save()
-      .deserialize((map) => Test.fromMap(map));
+
+  test = await test.save();
+
+  print(test);
 
   //Using toMap method updates the data of the correct row inside your db.
-  test.text = 'updated the new test';
+  test.text = 'updated the new test updated GONNA DELETE';
+
   await test.update();
 
   //selecting data
+  List<Test> tests = await Persister.selectAll(table: 'test')
+      .deserialize((map) => Test.fromMap(map));
+
   //For selecting data we use the static methods from Persister
   //Again, deserialize will return a callback containin every fetched row as a Map. You can use
   // that map in order to parse the data directly to a List of Models you're using.
 
   //Deleting one element
-  await test.delete();
+
+  // await test.delete();
+
 
   //Using the nativeQuery
   //You can use your own sql queries with the folling static method from Persister
@@ -83,4 +92,5 @@ void main() async {
       await Persister.nativeQuery(sql: 'select * from test')
           .deserialize((map) => Test.fromMap(map));
   print(testsNative);
+  // final List list = [];
 }
