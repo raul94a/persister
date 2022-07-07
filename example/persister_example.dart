@@ -62,12 +62,14 @@ void main() async {
   //save method will return a Map<String,dynamic>. You can concatenate this with deserialize()
   //In order to parse this Map into a Test object (or the Model you are using with Persister)
   //AutoIncrementable primary keys will be returned with the save method.
+
   test = await test.save();
 
   print(test);
 
   //Using toMap method updates the data of the correct row inside your db.
   test.text = 'updated the new test updated GONNA DELETE';
+
   await test.update();
 
   //selecting data
@@ -79,7 +81,9 @@ void main() async {
   // that map in order to parse the data directly to a List of Models you're using.
 
   //Deleting one element
+
   // await test.delete();
+
 
   //Using the nativeQuery
   //You can use your own sql queries with the folling static method from Persister

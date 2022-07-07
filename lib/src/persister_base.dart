@@ -62,7 +62,10 @@ abstract class Persister<T> {
   ///
   ///   }
   /// ```
+
   Future<T> save() async {
+
+
     int insertedId = 0;
     final conn = await _mySQLManager
         .init()
@@ -82,15 +85,19 @@ abstract class Persister<T> {
       if (isIdAutoIncrementable) {
         insertedId = res.insertId!;
         values.first = insertedId;
+        print('insertedID $insertedId');
+        print(values);
       }
     } catch (err) {
       throw Exception(err.toString());
     } finally {
       await conn.close();
     }
+
     final data =
         isIdAutoIncrementable ? _createUpdatedMap(insertedId) : _createMap();
     return fromMap(data);
+
   }
 
   ///To use the update method the best practice is to create the toMap() method
@@ -131,7 +138,10 @@ abstract class Persister<T> {
         .onError((error, stackTrace) => throw Exception(error.toString()));
     try {
       final updateQuery = _UpdateQuery(data: _createMap(), table: table);
+
       List<dynamic> updateValues = values.sublist(1)..add(values[0]);
+      print(updateValues);
+      print(updateQuery.updateQuery);
       await conn.query(updateQuery.updateQuery, updateValues);
     } catch (error) {
       throw Exception(error.toString());
@@ -143,7 +153,9 @@ abstract class Persister<T> {
   ///As update method is a good practice to declare a ToMap() method on the class body.
   ///this function will delete the object on the database;
   Future<void> delete() async {
+
     final data = _createMap();
+
     String idField = columns.first;
     dynamic idValue = data[idField];
     final conn = await _mySQLManager
@@ -225,11 +237,13 @@ abstract class Persister<T> {
     return map;
   }
 
+
   Map<String, dynamic> _createUpdatedMap(int insertedId) {
     final data = _createMap();
     data[columns.first] = insertedId;
     return data;
   }
+
 }
 
 class _UpdateQuery {
