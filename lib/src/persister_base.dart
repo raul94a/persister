@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:mysql_manager/mysql_manager.dart';
 import 'package:persister/src/select_builder.dart';
@@ -304,6 +305,8 @@ abstract class Persister<T> {
     data[columns.first] = insertedId;
     return data;
   }
+  Map<String,dynamic>  toMap() => _createMap();
+  String toJson() => jsonEncode(toMap());
 }
 
 class _UpdateQuery {

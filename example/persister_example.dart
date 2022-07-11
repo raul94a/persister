@@ -33,7 +33,7 @@ class Test extends Persister<Test> {
   //fromMap and toMap methods, you maybe want to implement then!
   @override
   Test fromMap(Map<String, dynamic> map) => Test.fromMap(map);
-  Map<String, dynamic> toMap() => {'id': id, 'text': text};
+ 
 
   @override
   String toString() => 'Test(id: $id, text: $text)';
@@ -97,4 +97,6 @@ void main() async {
   List<Test> testsNative2 =
       await Persister.nativeQuery(sql: 'select * from test where id > 5')
           .deserialize((map) => Test.fromMap(map));
+
+        
 }
